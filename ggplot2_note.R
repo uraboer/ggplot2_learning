@@ -89,6 +89,8 @@ qplot(
 qplot(carat,price,data = dsmall,log = "xy")
 
 
+#qplot()不是泛型泛型函数,ggplot()是
+
 
 
 

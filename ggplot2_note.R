@@ -93,6 +93,41 @@ qplot(carat,price,data = dsmall,log = "xy")
 
 
 
+library(ggplot2)
+qplot(displ,hwy,data = mpg,colour=factor(cyl))
+qplot(displ,hwy,data = mpg,geom = c("point","smooth"),colour=factor(cyl))
+graphics.off()
+
+
+
+#facet panel
+qplot(displ,hwy,data = mpg,facets = .~year)+geom_smooth()
+
+
+# 1.Map variables to aesthetics
+# 2.Facet datasets
+# 3.Transform scales
+# 4.Compute aesthetics
+# 5.Train scales
+# 6.Map cales
+# 7.Render geoms
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

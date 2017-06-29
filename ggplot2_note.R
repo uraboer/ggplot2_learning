@@ -113,30 +113,88 @@ qplot(displ,hwy,data = mpg,facets = .~year)+geom_smooth()
 # 7.Render geoms
 
 
+library(ggplot2)
+p<-qplot(displ,hwy,data = mpg,colour=factor(cyl))
+summary(p)
+
+save(p,file="plot.rdata")
+load("plot.rdata")
+ggsave("plot.png",width = 5,height = 5)
 
 
+#数据对象
+p<-ggplot(diamonds,aes(carat,price,color=cut))
+#图层
+#layer(geom,geom_params,stat,stat_params,data,mapping,position)
 
 
+p<-ggplot(diamonds,aes(x=carat))
+###geom_params
+p<-p+layer(
+  geom="bar",
+  params=list(fill="steelblue",binwidth=2),
+  stat = "bin",
+  position = "identity"
+)
 
 
+ggplot(msleep,aes(sleep_rem/sleep_total,awake))+geom_point()
+#===
+graphics.off()
+qplot(sleep_rem/sleep_total,awake,data = msleep)
 
 
+qplot(sleep_rem/sleep_total,awake,data = msleep,geom = c("point","smooth"))
+#===
+ggplot(msleep,aes(sleep_rem/sleep_total,awake))+geom_point()+geom_smooth()
 
 
+p<-ggplot(msleep,aes(sleep_rem/sleep_total,awake))
+summary(p)
+p<-p+geom_point()
+summary(p)
+
+# 图层是普通的R对象，所以可以存储到变量里去，这有利于代码避繁就简。
+# 例如，一组图形可以先用不同的数据来进行初始化，然后加上相同的图层，如果后面想改变图层，只需要修改一个地方即可。
 
 
+p<-ggplot(mtcars,aes(mpg,wt,color=cyl))+geom_point()
+p
+mtcars<-transform(mtcars,mpg=mpg^2)
+#用%+%来添加新的数据集以替代原来的数据集
+p %+% mtcars
+p
 
 
+ 
+# 在更改数据集时，可以任意改变它的值和维度，但是如果将一个变量从离散型变成连续型或者从连续性变成离散型，那么也需要改变相应的默认标度。
+# 在不使用分面的时候不必设定默认的数据集；分面是一个全局操作（作用于所有的图层），并且它需要一个定义了分面变量的默认数据集。如果没有给定默认的数据集，那么每个图层都要设定自己的数据集。
+# 
+# 数据是以副本而不是引用的形式存储到图形对象中的。
+# 这样做有两个重要的好处：
+# 1.如果数据改变了，绘图不会改变
+# 2.ggplot2的对象都是自含型的，它们可以被存储（save()）到磁盘上，并且之后可以被直接加载（load()）运行
+
+ 
+# aes()函数用来将数据变量映射到图形中，从而使变量成为可以被感知的图形属性
+# aes(x=weight,y=height,colour=age)
+# aes(x=weight,y=height,coulour=sqrt(age))
+# 
+# 每个aes()函数里额变量都必须包含于默认数据集或者图层数据集中，这是保证ggplot2对象都是自含型的重要方式之一，这样方便存储和重复使用。
 
 
+p<-ggplot(mtcars)
+summary(p)
+
+p<-p+aes(wt,hp)
+summary(p)
 
 
+p<-ggplot(mtcars,aes(x=mpg,y=wt))
+p+geom_point()
 
-
-
-
-
-
+p+geom_point(aes(colour=factor(cyl)))
+p+geom_point(aes(y=disp))
 
 
 

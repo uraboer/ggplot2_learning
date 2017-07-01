@@ -221,21 +221,129 @@ ggplot(diamonds,aes(carat))+
   geom_histogram(aes(y=..density..),binwidth = 0.1)
 
 #生成变量的名字必须要用..围起来。这样可以防止原数据集中的变量和生成变量重名时造成混淆，并且以后处理代码时，可以清晰的分辨出哪些变量是由统计变换生成的。
+graphics.off()
+#===
+qplot(carat,..density..,data = diamonds,geom = "histogram",binwidth=0.1)
+
+
+# 五种位置调整参数
+# dodge:避免重复，并排放置
+# fill:堆叠图形元素并将高度标准化为1
+# identity：不做任何调整
+# jitter:给点添加扰动避免重合
+# stack:将图形元素堆叠起来
 
 
 
 
+d<-ggplot(diamonds,aes(carat))+xlim(0,3)
+d+stat_bin(aes(ymax=..count..),binwidth = 0.1,geom = "area")
+d+stat_bin(aes(size=..density..),binwidth = 0.1,
+           geom = "point",position = "identity")
+d+stat_bin(aes(fill=..count..),y=1,binwidth = 0.1,
+           geom = "tile",position = "identity")
 
 
 
+require(nlme,quiet=TRUE,warn.conflicts = FALSE)
+model<-lme(height~age,data = Oxboys,
+           random = ~1+age|Subject)
+oplot<-ggplot(Oxboys,aes(age,height,group=Subject))+geom_line()
+oplot
 
 
 
+age_grid<-seq(-1,1,length=10)
+subjects<-unique(Oxboys$Subject)
+
+preds<-expand.grid(age=age_grid,Subject=subjects)
+preds$height<-predict(model,preds)
+
+oplot+geom_line(data=preds,colour="#3366FF",size=0.4)
 
 
 
+Oxboys$fitted<-predict(model)
+Oxboys$resid<-with(Oxboys,fitted-height)
+
+oplot %+% Oxboys+aes(y=resid)+geom_smooth(aes(group=1))
+#残差不是随机分布的，模型有缺陷
 
 
+model2<-update(model,height~age+I(age^2))
+Oxboys$fitted2<-predict(model2)
+Oxboys$resid2<-with(Oxboys,fitted2-height)
+
+oplot %+% Oxboys+aes(y=resid2)+geom_smooth(aes(group=1))
+
+
+#更新了数据集并且重新作了两次图却没有再次运行过oplot，这正是ggplot2图层功能所秉承的理念:使得反复拟合和评估模型变得轻松而自然
+
+
+
+# geom_area():面积图，在普通线图的基础上，依y轴方向填充了下方面积的图形。对于分组数据，各组将按照依次堆积的方式绘制。
+# geom_bar(stat="identity"):条形图，需要指定stat="dientity"，因为默认的统计变换将自动对“值”进行计数，而统计变换identity将保持数据不变。默认情况下，相同位置的多个条形图将依次向上堆积的方式绘制。
+# geom_line():线条图，图形属性group决定了哪些观测是连接在一起的。geom_path与geom_line类似，但geom_path中的线条是根据它们在数据中出现的顺序进行连接的，而非从左至右进行连接。
+# geom_point():散点图
+# geom_ploygon():多边形，即填充后的路径。数据中的每一行代表了多边形的一个顶点。在绘图之前将多边形的顶点坐标数据和原始数据进行合并往往会更加方便。
+# geom_text():可在指定点处添加标签。它是这些几何对象中唯一一个需要额外图形属性的：它需要指定label参数。可以通过设置可选的图形属性hjust和vjust来控制文本的横纵位置；此外，可以设置图形属性angle来控制文本的旋转。
+# geom_tile():色深图(image plot)或水平图(level plot)，所有的瓦片(tile)构成了对平面的一个规则切分，且往往将fill图形属性映射至另一个变量。
+
+
+df<-data.frame(
+  x=c(3,1,5),
+  y=c(2,4,6),
+  label=c("a","b","c")
+)
+
+p<-ggplot(df,aes(x,y))+xlab(NULL)+ylab(NULL)
+p
+p+geom_point()+labs(title="geom_point")
+
+p+geom_bar(stat = "identity")+labs(title="geom_bar(stat=\"identity\")")
+
+p+geom_line()+labs(title="geom_line")
+p+geom_area()+labs(title="geom_area")
+p+geom_path()+labs(title="geom_path")
+p+geom_text(aes(label=label))+labs(title="geom_text")
+p+geom_tile()+labs(title="geom_tile")
+p+geom_polygon()+labs(title="geom_polygon")
+
+
+# 展示数据
+# 有一些几何对象可以用于展示数据的分布，具体使用那种取决于分布的维度、分布是连续型或是离散型，以及我们感兴趣的是条件分布还是联合分布。
+# 对于一维连续型分布，最重要的集合对象是直方图。为了找到一个表现力强的视图，多次测试组距的布局细节是必不可少的。可以改变组距宽度(binwidth)或者显式地精确指定切分位置(breaks)
+# 有多种方式可以用来进行分布的跨组比较：同时绘制多个小的直方图，facets=.~var;使用频率多边形(frequency polygon)，geom="frepoly";或者使用条件密度图，position="fill"
+
+
+
+depth_dist<-ggplot(diamonds,aes(depth))+xlim(58,68)
+depth_dist+geom_histogram(aes(y=..density..),binwidth = 0.1)+facet_grid(cut ~ .)
+depth_dist+geom_histogram(aes(fill=cut),binwidth = 0.1,position = "fill")
+depth_dist+geom_freqpoly(aes(y=..density..,colour=cut),binwidth=0.1)
+
+
+
+# 作为几何对象的直方图和频率多边形均使用了stat_bin统计变换。此统计变换生成了两个输出变量count和density。
+# 变量count为默认值，因为它的可解释性更好。而变量density基本上相当于count除以count的总数，此变量在想要比较不同分布的形状而不是数据的绝对大小时更有用。
+# 特别的，经常使用此变量来比较数据中不同大小子集的分布。
+# 
+# 和分布相关的许多几何对象都是以集合对象(geom)/统计变换(stat)的形式成对出现的。
+# 这些几何对象中大多数的本质都是别名(alias):一个基本几何对象结合一个统计变换，即可绘制出想要的图形。
+# 表面上看，箱线图(boxplot)似乎是一个例外，但在幕后实现上，geom_boxplot同样是使用基本的条、线和点组合而成的。
+# 
+# geom_boxplot=stat_boxplot+geom_boxplot:箱线图，即一个连续型变量针对一个类别型变量取条件所得的图形。
+# 当类别型变量有许多独立的取值时，这种图形比较有用。
+# 不过当类别型变量的取值很少时，直接研究分布的具体形状更佳。
+# 箱线图也可对连续型变量取条件，前提是数据预先经过巧妙的封箱(binning)处理
+
+
+library(plyr)
+#类别型变量
+qplot(cut,depth,data=diamonds,geom="boxplot")
+#连续型变量
+qplot(carat,depth,data=diamonds,geom = "boxplot",
+      group=round_any(carat,0.1,floor),xlim = c(0,3))
 
 
 

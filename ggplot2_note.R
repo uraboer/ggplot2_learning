@@ -198,6 +198,49 @@ p+geom_point(aes(y=disp))
 
 
 
+p<-ggplot(mtcars,aes(mpg,wt))
+p+geom_point(colour="darkblue")
+#!==
+p+geom_point(aes(colour="darkblue"))
+
+
+library(nlme)
+p<-ggplot(Oxboys,aes(age,height,group=Subject))+geom_line()
+graphics.off()
+#已经将第一幅图存储到变量p中，可以在此基础上添加第二个图层，而不需要重新输入第一个图层的代码
+p+geom_smooth(aes(group=Subject),method = "lm",se=F)
+
+
+
+boysbox<-ggplot(Oxboys,aes(Occasion,height))+geom_boxplot()
+graphics.off()
+boysbox+geom_line(aes(group=Subject),colour="#3366FF")
+
+
+ggplot(diamonds,aes(carat))+
+  geom_histogram(aes(y=..density..),binwidth = 0.1)
+
+#生成变量的名字必须要用..围起来。这样可以防止原数据集中的变量和生成变量重名时造成混淆，并且以后处理代码时，可以清晰的分辨出哪些变量是由统计变换生成的。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

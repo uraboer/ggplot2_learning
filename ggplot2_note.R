@@ -356,6 +356,133 @@ qplot(class,drv,data=mpg,geom = "jitter")
 # 请仅在已知潜在的密度分布为平滑、连续且无边界的时候使用这种密度图，可以使用参数adjust来调整所得密度曲线的平滑程度
 
 
+qplot(depth,data = diamonds,geom = "density",xlim = c(54,70))
+qplot(depth,data = diamonds,geom = "density",xlim = c(54,70),
+      fill=cut,alpha=I(0.2))
+
+
+# 处理遮盖绘图问题
+# 散点图是研究两个连续变量间关系的重要工具。但是当数据量很大时，这些点经常会出现重叠现象，从而掩盖真实的关系。
+# 在极端情况下，甚至只能看到数据所在的大致范围，根据这种图形做出的任何结论都是值得怀疑的。
+# 这种问题被成为遮盖绘制(overplotting)，对付的办法：
+# 
+# 小规模的遮盖绘制问题可以通过绘制更小的点加以缓解，或者使用中空的符号
+
+df<-data.frame(x=rnorm(2000),y=rnorm(20000))
+norm<-ggplot(df,aes(x,y))
+norm+geom_point()
+norm+geom_point(shape=1)#空心点
+norm+geom_point(shape=".")#点的大小为像素级
+
+
+
+# 对于更大的数据集产生的更为严重的遮盖绘制问题，可以使用α混合（调整透明度）让点呈现透明效果。
+# 假设以比值形式指定α的值，则分母代表的是一个位置的颜色变为完全不透明时所需重叠点的数量。
+# 在R中，可用的最小透明度为1/256，所以对于严重的遮盖绘制问题，这种方法的效果并不会太好
+
+
+norm+geom_point(colour="black",alpha=1/3)
+norm+geom_point(color="black",alpha=1/5)
+norm+geom_point(color="black",alpha=1/10)
+norm+geom_point(color="black",alpha=1/256)
+
+
+# 如果数据存在一定的离散性，可以通过在点上增加随机扰动来减轻重叠。
+# 特别是在与透明度一起使用时，这种方法很有效。
+# 默认情况下，增加的扰动量是数据分辨率(resolution)的40%，这样可为数据中国的邻接区域留下一定的小间隙。
+
+
+td<-ggplot(diamonds,aes(table,depth))+
+  xlim(50,70)+ylim(50,70)
+td+geom_point()
+td+geom_jitter()
+jit<-position_jitter(width = 0.5)
+td+geom_jitter(position = jit)
+td+geom_jitter(position = jit,colour="black",alpha=1/10)
+td+geom_jitter(position = jit,colour="black",alpha=1/50)
+td+geom_jitter(position = jit,colour="black",alpha=1/200)
+
+
+# 将点分箱并统计每个箱中点的数量，然后通过某种方式可视化这个数量。
+# 将图形划分为小的正方形箱可能会产生分散注意力的视觉假象。
+# 使用bins和binwidth来控制箱的数量和大小
+
+
+d<-ggplot(diamonds,aes(carat,price))+xlim(1,3)+
+  theme(legend.position = "none")
+d
+d+stat_bin2d()
+d+stat_bin2d(bins = 10)
+d+stat_bin2d(binwidth = c(0.02,200))
+
+install.packages("hexbin")
+library(hexbin)
+d+stat_binhex()
+d+stat_binhex(bins=10)
+d+stat_binhex(binwidth = c(0.02,200))
+
+
+# 使用stat_density2d作二维密度估计，并将等高线添加到散点图中，或以着色瓦片(colored tiles)直接展示密度，或使用大小与分布密度成比例的点进行展示
+d<-ggplot(diamonds,aes(carat,price))+xlim(1,3)+
+  theme(legent.position="none")
+d
+#基于点和等高线的密度展示
+d+geom_point()+geom_density2d()
+#基于色深的密度暂时
+d+stat_density2d(geom = "point",aes(size=..density..),
+                 contour = F)+scale_size_area()
+d+stat_density2d(geom = "tile",aes(fill=..density..),
+                 contour = F)
+last_plot()+scale_fill_gradient(limits=c(1e-5,8e-4))
+
+#对付遮盖绘制问题的另一种方法是在图形上添加数据摘要，以指引人眼在茫茫数据中发现所寻模式的真实形状
+
+
+#ggplot2暂不支持真正的三维曲面图
+
+# 使用地图数据可能有两只原因：
+# 1.为空间数据图形添加参考轮廓线
+# 2.通过在不同的区域填充以构建等值线图(choropleth map)
+
+
+
+# 添加地图边界可通过函数borders()完成
+# 函数的前两个参数指定了要绘制的地图名map以及其中的具体区域region
+# 其余的参数用于控制边界的外观:边界的颜色colour、线条的粗细size
+
+
+
+library(maps)
+data("us.cities")
+#展示了美国(2006年1月)五十万人口以上的城市
+big_cities<-subset(us.cities,pop>500000)
+qplot(long,lat,data = big_cities)+borders("state",size=0.5)
+#德克萨斯州的城市规划
+tx_cities<-subset(us.cities,country.etc=="TX")
+ggplot(tx_cities,aes(long,lat))+
+  borders("county","texas",colour = "grey70")+
+  geom_point(colour="black",alpha=0.5)
+
+
+
+# 等值线图(choropleth map)则相对更难处理一些，自动化程度也没那么高
+# 原因在于，要将数据中的标识符(identifier)同地图数据中的标识符完全匹配起来是有一定挑战性的。
+# 关键在于，数据和地图数据中要有一列可以相互匹配
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

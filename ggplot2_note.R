@@ -221,6 +221,28 @@ ggplot(diamonds,aes(carat))+
   geom_histogram(aes(y=..density..),binwidth = 0.1)
 
 #生成变量的名字必须要用..围起来。这样可以防止原数据集中的变量和生成变量重名时造成混淆，并且以后处理代码时，可以清晰的分辨出哪些变量是由统计变换生成的。
+graphics.off()
+#===
+qplot(carat,..density..,data = diamonds,geom = "histogram",binwidth=0.1)
+
+
+# 五种位置调整参数
+# dodge:避免重复，并排放置
+# fill:堆叠图形元素并将高度标准化为1
+# identity：不做任何调整
+# jitter:给点添加扰动避免重合
+# stack:将图形元素堆叠起来
+
+
+
+
+
+
+
+
+
+
+
 
 
 

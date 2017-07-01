@@ -346,9 +346,14 @@ qplot(carat,depth,data=diamonds,geom = "boxplot",
       group=round_any(carat,0.1,floor),xlim = c(0,3))
 
 
+#geom_jitter=position_jitter+geom_point:通过在离散型分布上添加随机噪声以避免遮盖绘制问题，这是一种较为粗糙的方法。
+
+qplot(class,cty,data=mpg,geom = "jitter")
+qplot(class,drv,data=mpg,geom = "jitter")
 
 
-
+# geom_density=stat_density+geom_area:基于核平滑方法进行平滑后得到的频率多边形。
+# 请仅在已知潜在的密度分布为平滑、连续且无边界的时候使用这种密度图，可以使用参数adjust来调整所得密度曲线的平滑程度
 
 
 

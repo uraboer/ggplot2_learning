@@ -470,8 +470,11 @@ ggplot(tx_cities,aes(long,lat))+
 # 关键在于，数据和地图数据中要有一列可以相互匹配
 
 
-
-
+library(maps)
+states<-map_data("state")
+arrests<-USArrests
+names(arrests)<-tolower(names(arrests))
+arrests$region<-
 
 
 

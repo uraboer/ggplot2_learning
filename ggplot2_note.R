@@ -492,8 +492,18 @@ qplot(long,lat,data = choro,group=group,
 
 
 
-
-
+library(plyr)
+ia<-map_data("county","iowa")
+ia
+mid_range<-function(x) mean(range(x,na.rm=TRUE))
+centres<-ddply(ia,.(subregion),colwise(mid_range,.(lat,long)))
+centres
+?ddply
+ggplot(ia,aes(long,lat))+
+  geom_polygon(aes(group=group),
+               fill=NA,colour="grey60")+
+  geom_text(aes(label=subregion),data = centres,
+            size=2,angle=45)
 
 
 

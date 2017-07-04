@@ -473,11 +473,22 @@ ggplot(tx_cities,aes(long,lat))+
 library(maps)
 states<-map_data("state")
 arrests<-USArrests
+arrests
 names(arrests)<-tolower(names(arrests))
-arrests$region<-
+arrests$region<-tolower(rownames(USArrests))
 
 
-
+choro<-merge(states,arrests,by="region")
+choro
+#由于绘制多边形时涉及排序问题，且merge破坏了原始排序，故进行重新排序
+choro<-choro[order(choro$order),]
+head(choro)
+#等值线图，各州人身伤害案件的数量
+qplot(long,lat,data = choro,group=group,
+      fill=assault,geom = "polygon")
+#等值线图，人身伤害和谋杀类案件的比率
+qplot(long,lat,data = choro,group=group,
+      fill=assault/murder,geom = "polygon")
 
 
 

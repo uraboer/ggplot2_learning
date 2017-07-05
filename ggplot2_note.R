@@ -538,29 +538,103 @@ carat<-effectdf("lcarat",mod,default.levels=50)
 both2<-effectdf("lcarat:color",mod,default.levels=3)
 
 
+#进行数据变换以移除显而易见的效应
+#对x轴和y轴的数据均以10为底的对数以剔除非线性性
 qplot(lcarat,lprice,data = d,colour=color)
+#剔除了主要的线性趋势
 qplot(lcarat,lprice2,data = d,colour=color)
 
 fplot<-ggplot(mapping = aes(y=fit,ymin=lower,ymax=upper))+
   ylim(range(both2$lower,both2$upper))  
 
 
+#展示模型估计结果中变量color的不确定性
+#color的边际效应
 fplot %+% color+aes(x=color)+geom_point()+geom_errorbar()
+
+#针对变量caret的不同水平（level），变量color的条件效应
+#误差棒显示了95%的逐点置信区间
 fplot %+% both2 +
     aes(x=color,colour=lcarat,group=interaction(color,lcarat))+
     geom_errorbar()+geom_line(aes(group=lcarat))+
     scale_colour_gradient()
 
+
+#展示模型估计结果中变量carat的不确定性
+#caret的边际效应
 fplot %+% carat + aes(x=lcarat)+geom_smooth(stat="identity")
 
 ends<-subset(both1,lcarat==max(lcarat))
 
+#针对变量color的不同水平，变量caret的条件效应
+#误差带显示了95%的逐点置信区间
 fplot %+% both1+aes(x=lcarat,colour=color)+
   geom_smooth(stat="identity")+
   scale_colour_hue()+theme(legend.position = "none")+
-  geom_text(aes(label=color,x=lcarat+0.02),ends);
+  geom_text(aes(label=color,x=lcarat+0.02),ends)
 
 
+
+#注意，在为这类图形添加题注时，需要细致地描述其中所含置信区间的本质，并说明观察置信区间之间的重叠是否有意义
+#说明，当比较不同组时，如果区间没有重叠，则说明差异显著
+#即，这些标准误是针对单组的均值的，还是针对不同组件均值之差的
+#在计算和展示这些标准误时，multcomp包和multcompView包将非常有用，同时在多重比较中能正确地对自由度进行调整
+
+
+
+#对于每个x的取值，计算对应y值的统计摘要是很有用的
+#stat_summary()，使用ymin,y和ymax等图形属性，为汇总y的条件分布提供了一种灵活的方式
+
+
+
+#参数fun.y，fun.ymin，fun.ymax能够接受简单的数值型摘要计算函数
+#即该函数能够传入一个数值向量并返回一个数值型结果
+#如mean()，median()，min()，max()
+
+
+
+#fun.data可以支持更复杂的摘要计算函数
+#也可以自己编写摘要计算函数：此函数应返回一个各元素有名称的向量作为输出
+
+
+
+#添加图形注解
+#在使用额外的标签注解图形时要记住的重要一点是：这些注解仅仅是额外的数据而已
+#添加图形注解有两种基本的方式：逐个添加或批量添加
+
+#逐个添加的方式适合少量的、图形属性多样化的注解
+#需要添加多个具有类似属性的注解，将它们放到数据框中一并添加完成更有效
+
+
+(unemp<-qplot(date,unemploy,data = economics,geom = "line",
+              xlab = "",ylab = "No. unemployed (1000s)"))
+
+
+graphics.off()
+unemp<-qplot(date,unemploy,data = economics,geom = "line",
+              xlab = "",ylab = "No. unemployed (1000s)")
+unemp
+
+
+presidential<-presidential[-(1:3),]
+head(presidential)
+head(economics)
+yrng<-range(economics$unemploy)
+xrng<-range(economics$date)
+unemp+geom_vline(aes(xintercept=as.numeric(start)),data=presidential)
+
+
+install.packages("scales")
+library(scales)
+library(ggplot2)
+unemp+geom_rect(aes(NULL,NULL,xmin=start,xmax=end,
+      fill=party),ymin=yrng[1],ymax=yrng[2],
+      data = presidential,alpha=0.2)+scale_fill_manual(values = 
+      c("blue","red"))
+
+
+last_plot()+geom_text(aes(x=start,y=yrng[1],label=name),
+      data=presidential,size=3,hjust=0,vjust=0)
 
 
 

@@ -506,6 +506,66 @@ ggplot(ia,aes(long,lat))+
             size=2,angle=45)
 
 
+#不论是从模型所得或是从分布的假设而得，如果我们已经知道了一些关于数据中不确定性的信息，那么对这些信息加以展示通常是很重要的。
+#在ggplot2中，共有四类几何对象可以用于这项工作，具体使用哪个取决于x的值是离散型还是连续型的，以及我们是否想要展示区间内的中间值，或是仅仅展示区间。
+
+
+
+d<-subset(diamonds,carat<2.5 &
+            rbinom(nrow(diamonds),1,0.2)==1)
+head(d)
+
+d$lcarat<-log10(d$carat)
+d$lprice<-log10(d$price)
+
+#剔除整体的线性趋势
+detrend<-lm(lprice~lcarat,data=d)
+
+d$lprice2<-resid(detrend)
+
+mod<-lm(lprice2~lcarat*color,data=d)
+head(mod)
+
+
+install.packages("effects")
+library(effects)
+effectdf<-function(...){
+  suppressWarnings(as.data.frame(effect(...)))
+}
+color<-effectdf("color",mod)
+both1<-effectdf("lcarat:color",mod)
+carat<-effectdf("lcarat",mod,default.levels=50)
+both2<-effectdf("lcarat:color",mod,default.levels=3)
+
+
+qplot(lcarat,lprice,data = d,colour=color)
+qplot(lcarat,lprice2,data = d,colour=color)
+
+fplot<-ggplot(mapping = aes(y=fit,ymin=lower,ymax=upper))+
+  ylim(range(both2$lower,both2$upper))  
+
+
+fplot %+% color+aes(x=color)+geom_point()+geom_errorbar()
+fplot %+% both2 +
+    aes(x=color,colour=lcarat,group=interaction(color,lcarat))+
+    geom_errorbar()+geom_line(aes(group=lcarat))+
+    scale_colour_gradient()
+
+fplot %+% carat + aes(x=lcarat)+geom_smooth(stat="identity")
+
+ends<-subset(both1,lcarat==max(lcarat))
+
+fplot %+% both1+aes(x=lcarat,colour=color)+
+  geom_smooth(stat="identity")+
+  scale_colour_hue()+theme(legend.position = "none")+
+  geom_text(aes(label=color,x=lcarat+0.02),ends);
+
+
+
+
+
+
+
 
 
 

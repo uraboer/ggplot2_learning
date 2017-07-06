@@ -637,6 +637,66 @@ last_plot()+geom_text(aes(x=start,y=yrng[1],label=name),
       data=presidential,size=3,hjust=0,vjust=0)
 
 
+caption<-paste(strwrap("Unemployment rates in the US has
+    varied a lot over the years",40),collapse="\n")
+unemp+geom_text(aes(x,y,label=caption),
+  data=data.frame(x=xrng[2],y=yrng[2]),
+  hjust=1,vjust=1,size=4)
+
+
+highest<-subset(economics,unemploy==max(unemploy))
+unemp+geom_point(data = highest,size=3,colour="red",
+                 alpha=0.5)
+
+
+#geom_text：可添加文字叙述或为点添加标签。对于多数图形，为所有观测都添加标签是无益的。然而，抽取部分观测添加标签可能会非常有用，往往希望标注出离群点或其它重要的点
+#geom_vline,geom_hline：向图形添加垂直线或水平线
+#geom_abline：向图形添加任意斜率和截距的直线
+#geom_rect：可强调图形中感兴趣的矩形区域。有xmin、xmax、ymin、ymax几种图形属性
+#geom_line,geom_path和geom_segment都可以添加直线。所有这些几何对象都有一个
+
+
+#对于线和点这类简单的几何对象，可以根据点的数量调整图形属性size来改变点的大小
+
+#无权重
+qplot(percwhite,percbelowpoverty,data = midwest)
+#以人口数量为权重
+qplot(percwhite,percbelowpoverty,data = midwest,
+      size=poptotal/1e6)+scale_size_area("Population\n(millions)",
+      breaks=c(0.5,1,2,4))
+#以面积为权重
+qplot(percwhite,percbelowpoverty,data = midwest,size=area)+
+      scale_size_area()
+
+
+#对于更为复杂的、涉及到统计变换的情况，通过修改weight图形属性来表现权重
+#这些权重将被传递给统计汇总计算函数
+#在权重有意义的情况下，各种元素基本都支持权重的设定
+#例如：各类平滑器、分位回归、箱线图、直方图、各类密度图
+#无法直接看到这个权重变量，而且它也没有对应的图例，但它却会改变统计汇总的结果
+
+
+
+lm_smooth<-geom_smooth(method = lm,size=1)
+#未考虑权重的最优拟合曲线
+qplot(percwhite,percbelowpoverty,data = midwest)+lm_smooth
+#以人口数量作为权重的最优拟合曲线
+qplot(percwhite,percbelowpoverty,data = midwest,
+      weight=popdensity,size=popdensity)+lm_smooth
+
+
+
+#不含权重信息的直方图，展示郡的数量
+qplot(percbelowpoverty,data = midwest,binwidth=1)
+#含权重信息的直方图，展示了人口数量
+qplot(percbelowpoverty,data = midwest,weight=poptotal,
+      binwidth=1)+ylab("population")
+
+
+
+
+
+
 
 
 

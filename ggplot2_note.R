@@ -713,6 +713,221 @@ qplot(percbelowpoverty,data = midwest,weight=poptotal,
 # 引导元素的外观皆由标度的参数控制
 
 
+# 标度的工作原理
+# 由于输入变量可能是离散型，也可能是连续型，所以标度的定义域要么是某些值组成的集合（以因子的形式存储，字符型因子或逻辑型因子），要么是一个实值区间（以长度为2的数值型向量的形式存储）
+# 
+# 标度的值域也可以是离散型或连续型的。
+# 对于离散型标度，它的值域是输入值对应的图形属性值组成的一个向量。
+# 对于连续型标度，它的值域是穿过某种更复杂空间的一条一维路径。
+# 
+# 将定义域映射到值域的过程：
+# 1.变换：（仅针对连续型的定义域）例如对数据取对数或开根号
+# 
+# 2.训练：在一个仅有一个图层且仅呈现原始数据的图形中，这个学习过程包括确定某个（变换后的）连续型变量的最小值和最大值，或者是列出某个类别型变量的所有水平。
+# 但是，标度的的定义域往往必须在多个面板中反映出横跨多个数据集的多个图层
+# 
+# 3.映射
+# 
+# 
+# 在初始化整个图形和增加新图层时，默认的标度将被自动添加。
+# 这意味着，如果在之后修改了底层数据或图形属性映射，变量类型和标度类型之间可能出现不匹配的情况
+
+
+plot<-qplot(cty,hwy,data = mpg) 
+plot
+
+#这样做行不通是因为变量类型和默认标度不匹配
+plot+aes(x=drv)
+
+##更正默认标度后解决了问题
+graphics.off()
+plot+aes(x=drv)+scale_x_discrete()
+
+
+# 如果要添加一个不同的标度或修改默认标度的某些特征，必须构造一个新的标度，然后使用+将其添加到图形上
+# 所有的标度构建器（scale constructor）都有一套通用的命名方案
+# 以scale_开头，接下来是图形属性的名称（colour_,shape_,x_）,最后以标度的名称结尾（gradient,hue,manual）
+
+
+p<-qplot(sleep_total,sleep_cycle,data = msleep,colour=vore)
+p
+
+#显示添加默认标度
+p+scale_colour_hue()
+
+#修改默认标度的参数，这里改变了图例的外观
+p+scale_colour_hue("What does\nit eat?",
+  breaks=c("herbi","carni","omni",NA),
+  labels=c("plants","meat","both","don't know"))
+
+#使用一种不同的标度
+p+scale_color_brewer(palette = "Set1")
+
+
+# 标度可分为四组：
+# 1.位置标度：用于将连续型、离散型和日期-时间型变量映射到绘图区域，以及构造对应的坐标轴
+# 2.颜色标度：用于将连续型和离散型变量映射到颜色
+# 3.手动标度：用于将离散型变量映射到我们选择的符号大小、线条类型、形状或颜色、以及创建对应的图例
+# 4.同一型标度：用于直接将变量值绘制为图形属性，而不去映射它们
+
+
+#通用参数
+#1.name:设置坐标轴或图例上出现的标签，可以指定字符串（使用\n换行）或数学表达式，xlab(),ylab(),labs()
+
+p<-qplot(cty,hwy,data = mpg,colour=displ)
+p
+p+scale_x_continuous("City mpg")
+p+xlab("City mpg")
+p+ylab("Highway mpg")
+p+labs(x="City mpg",y="Highway",colour="Displacement")
+#miles/gallon
+p+xlab(expression(frac(miles,gallon)))
+
+
+#2.limits:固定标度的定义域。连续型标度接受一个长度为2的数值型向量；离散型标度接受一个字符型向量。
+#一旦设定了limits，数据将不再进行任何训练。
+#限制定义域可以移除不想在图形上展示的数据，同时也可以保证要进行比较的多个图形中的绘制范围一致
+#任何不在此标度定义域内的值均被丢弃：如果想要囊括图中的所有观测，其每个图形属性都必须位于每个标度的定义域中。
+#丢弃过程发生在统计量的计算之前
+
+#3.breaks,labels:控制着显示在坐标轴或图例上的值
+#即坐标轴上应该显示那些刻度线的值，或一个连续型标度在一个图例中将被如何分段
+#labels指定了应在断点处显示的标签
+#若设置了labels，则必须同时指定breaks，只有这样，这两个参数才能被正确匹配
+#breaks影响显示在坐标轴和图例上的元素，limits影响显示在图形上的元素
+
+
+p<-qplot(cyl,wt,data = mtcars)
+p
+p+scale_x_continuous(breaks = c(5.5,6.5))
+p+scale_x_continuous(limits = c(5.5,6.5))
+p<-qplot(wt,cyl,data = mtcars,colour=cyl)
+p
+p+scale_colour_gradient(breaks=c(5.5,6.5))
+p+scale_colour_gradient(limits=c(5.5,6.5))
+
+
+#4.formatter:如果未指定任何标签，则将在每个断点处自动调用格式刷（formatter）来格式化生成标签
+#对于连续型标度，可用的标签刷为：comma,percent,dollar,scientific
+#对于离散型标度，则为abbreviate
+
+
+#位置标度
+#每幅图形一定拥有两个位置标度，一个指定水平位置（x标度），一个指定竖直位置（y标度）
+#xlim(10,20):一个从10到20的连续型标度
+#ylim(20,10):一个从20到10的反转后连续型标度
+#xlim("a","b","c"):一个离散型标度
+#xlim(as.Date(c("2008-05-01","2008-08-01"))):一个从2008年5月1日到8月1日的日期型标度
+
+#在ggplot2中，为了保持与其它标度的一致性，任何在limits以外的数据都不会被绘制，也不会被包括在统计变换的过程中。
+#这意味着，通过设置limits所得结果与在视觉上放大一块绘图区域所得的结果是不同的
+
+#默认情况下，位置标度的limits会稍微超出数据的范围。这样就保证了数据与坐标轴不会发生重叠。
+#可以用参数expand来控制溢出量，此参数是长度为2的数值型向量
+#其中第一个元素给出的是乘式的溢出量，第二个参数给出的是加式的溢出量
+#如果不想留任何多余的空间，就使用expand=c(0,0)
+
+
+#连续型
+#最常用的连续型位置标度是scale_x_continuous和scale_y_continuous，均将数据映射到x轴和y轴
+#每个连续型标度均可接受一个trans参数，允许指定若干种线性或非线性的变换
+#而每一种变换都是由“变换器”实现的，变换器描述了变换本身和对应的逆变换，以及如何去绘制标签
+
+#变换通常被用来修改位置标度，所以对于x,y和z标度都是有简便写法的
+#scale_x_log10()等价于scale_x_continuous(trans="log10")
+#参数trans对任意的连续型标度均有效，包括颜色梯度，但简便写法仅针对位置标度存在
+
+
+
+#对标度进行对数变换
+qplot(log10(carat),log10(price),data = diamonds)
+#对数据进行对数变换
+#图形主体是完全相同的，但坐标轴上的标签是不同的
+qplot(carat,price,data = diamonds)+scale_x_log10()+
+  scale_y_log10()
+
+
+#日期和时间
+#日期和时间值基本上属于连续型，但在标注坐标轴时有着特殊的处理方式
+#目前仅支持属于date类的日期值和属于POSIXct类的时间值
+#如果是其他格式的，则需使用as.Date()或as.POSIXct()对其进行转换
+
+#对于日期坐标轴，有三个参数可以用于控制其外观和刻度的位置：major、minor、format
+
+#总体而言，此标度本身已经能够很好地选择默认值，不过如果想对其进行微调，细节如下：
+#参数major和minor用以按照时间的单位,即年、月、周、日、时、分、秒来指定主要和次要断点的位置，并且允许以这些单位的倍数出现
+#参数format指定了刻度标签的格式，"%d/%m/%y"
+
+library(scales)
+plot<-qplot(date,psavert,data = economics,geom = "line")+
+  ylab("Personal savings rate")+
+  geom_hline(yintercept = 0,colour="grey50")
+plot
+plot+scale_x_date(breaks = date_breaks("10 years"))
+plot+scale_x_date(
+  limits = as.Date(c("2004-01-01","2005-01-01")),
+  labels = date_format("%Y-%m-%d")
+)
+
+
+#离散型
+#离散型位置标度将输入中的各水平映射为整数。
+#结果的顺序可用参数breaks进行控制，不想要的水平可以使用limits进行丢弃
+#由于经常会在图形的非整点位置放置标签和标注，所以离散型位置标度可以接受连续型的值
+#如果尚未调整breaks或limits，某个因子水平的所在位置的数值表示可以使用as.numeric()进行计算：以从1开始的整数表示
+
+
+#颜色标度
+#对连续型值有三种基于渐变的方法，对离散型值有两种方法
+
+#hcl色彩空间的现代方案：色相(hue)、彩度(chroma)、明度(luminance)
+#色相：是一个0和360之间的角度值，将一种色彩赋以“颜色”属性，如蓝、红、橙
+#明度：指颜色的明暗程度。明度的高低，要看其接近白色或黑色的程度而定。0为黑，1为白
+#彩度：指色彩的纯度。0是灰色，彩度的最大值随明度的变化而不同
+
+
+#连续型
+#根据颜色梯度中的色彩数量划分，共有三类连续型颜色梯度（即渐变色）：
+#scale_colour_gradient()和scale_fill_gradient():双色梯度，顺序从低到高。参数low和high用以控制此梯度两端的颜色
+
+#scale_colour_gradient2()和scale_fill_gradient2():三色梯度。参数low和high用以控制此梯度两端的颜色。顺序为低——中——高。
+#中点的默认值为0，但也可以使用参数midpoint将其设置为任意值。这个参数
+
+#scale_colour_gradientn()和scale_fill_gradientn():自定义的n色梯度。此标度需要赋给参数colours一个颜色向量。
+#不加其它参数的话，这些颜色将依照数据的范围均匀地分布。如果需要让这些值不均匀地分布，则可以使用参数values
+#如果rescale的取值为TRUE（默认值），则values应在0和1之间取值。
+#如果rescale的取值为FALSE，则values应在数据范围内取值
+
+
+f2d<-with(faithful,MASS::kde2d(eruptions,waiting,
+  h=c(1,10),n=50))
+df<-with(f2d,cbind(expand.grid(x,y),as.vector(z)))
+names(df)<-c("eruptions","waiting","density")
+#温泉喷发时间数据密度估计的三种配色方案
+#默认的颜色梯度
+erupt<-ggplot(df,aes(waiting,eruptions,fill=density))+
+  geom_tile()+
+  scale_x_continuous(expand=c(0,0))+
+  scale_y_continuous(expand=c(0,0))
+erupt+scale_fill_gradient(limits=c(0,0.04))
+
+#自定义的黑白梯度
+erupt+scale_fill_gradient(limits=c(0,0.04),
+  low = "white",high="black")
+
+#中点设为密度均值的3点梯度
+erupt+scale_fill_gradient2(limits=c(-0.04,0.04),
+  midpoint = mean(df$density))
+
+
+
+#install.packages("vcd")
+library(vcd)
+fill_gradn<-function(pal){
+  scale_fill_gradientn(colours = pal(7),limits=c(0,0.04))
+}
+
+erupt+fill_gradn(rainbow)
 
 
 

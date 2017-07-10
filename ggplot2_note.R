@@ -930,6 +930,107 @@ fill_gradn<-function(pal){
 erupt+fill_gradn(rainbow)
 
 
+#离散型
+#离散型数据有两种颜色标度。一种可以自动选择颜色，另一种可以轻松地从手工甄选颜色集中选择颜色
+#默认的配色方案，即scale_color_hue()，可通过沿着hcl色轮选取均匀分布的色相来生成颜色
+#这种方案对多至约8种颜色时都能有较好的效果，但对于更多的颜色，要区分开不同颜色就变得比较困难了
+#默认配色的另外一个缺点是，由于所有颜色都拥有相同的明度和彩度，当进行黑白打印时，就会成为几近相同的灰影
+
+#除了这种基于计算的方案以外，另一种可选的方案是使用ColorBrewer配色
+#这些手工甄选的颜色可在很多情境下良好的运作，尽管它更专注于地图，这些颜色也因此在展示较大的面积时表现更佳
+
+#对于类别型数据中的点，关注的调色板是"Set1","Dark2"
+#对面积而言，则是"Set2","Pastel1","Pastel2","Accent"
+#使用RColorBrewer::display.brewer.all可列出所有的调色板
+
+
+point<-qplot(brainwt,bodywt,data = msleep,log = "xy",
+  colour=vore)
+area<-qplot(log10(brainwt),data = msleep,fill=vore,
+  binwidth=1)
+
+#应用于点的三种调色板
+point+scale_color_brewer(palette = "Set1")
+point+scale_color_brewer(palette = "Set2")
+point+scale_color_brewer(palette = "Pastel1")
+#应用于条形的三种调色板
+area+scale_fill_brewer(palette = "Set1")
+area+scale_fill_brewer(palette = "Set2")
+area+scale_fill_brewer(palette = "Pastel1")
+
+
+#手动离散型标度
+#离散型标度scale_linetype(),scale_size_discrete()和scale_shape()基本上没有选项（虽然对于形状标度，可以选择点是空心可填充的或是实心的）
+#这些标度仅仅是按一定的顺序将因子的水平映射到一系列取值中
+
+#如果想要定制这些标度，需要使用：scale_shape_manual(),scale_linetype_manual(),scale_colour_manual()
+
+#手动型标度有一个重要参数values,可以用它来指定这个标度应该生成的值
+#如果这个向量中的元素是有名称的，则它将自动匹配输入和输出的值，否则它将按照离散型变量中水平的先后次序进行匹配
+
+
+plot<-qplot(brainwt,bodywt,data = msleep,log = "xy")
+
+#自定义颜色标度
+plot+aes(color=vore)+scale_color_manual(values = 
+    c("red","orange","yellow","green","blue"))
+colours<-c(carni="red","NA"="orange",insecti="yellow",
+    herbi="green",omni="blue")
+plot+aes(color=vore)+scale_color_manual(values = colours)
+
+#自定义形状标度
+plot+aes(shape=vore)+scale_shape_manual(values = c(1,2,6,0,23))
+
+
+
+#在同一幅图上展示多个变量并显示一个有用的图例
+#使用scale_colour_manual(),把线上色，然后添加一个图例说明哪种颜色对应着哪个变量即可
+#这对于ggplot2不适用，因为图例是由标度负责的，但标度并不知道要为线条添加何种标度
+
+
+huron<-data.frame(year=1875:1972,level=LakeHuron)
+head(huron)
+ggplot(huron,aes(year))+
+  geom_line(aes(y=level-5),color="blue")+
+  geom_line(aes(y=level+5),color="red")
+
+
+
+#同一型标度
+#当数据能被R中的绘图函数理解时，即数据空间和图形属性空间相同时，可以使用同一型标度(identity scale)
+
+#图例和坐标轴
+#坐标轴和坐标被共同称为引导元素，它们都是标度的逆函数：允许在图中读出观测并将其映射回原始值
+
+#图例和坐标轴存在着天然的可比性：图例标题(legend title)和坐标轴名(axis label)是等价的，并且都由标度的名称参数(name)决定
+#图例标示(legend key)和刻度标签(tick label)皆由标度的断点参数(break)决定
+
+#要绘制图例，图形必须收集每一种图形属性的使用信息：为何种数据及为何种几何对象
+#标度的断点(breaks)被用来确定图例标示的值，使用了对应图形属性的一系列集合对象则
+
+#标度的断点(breaks)被用来确定图例标示的值，使用了对应图形属性的一系列集合对象则被用来确定如何绘制这些标示
+#如果使用了点这个几何对象，那么将在图例中得到点；
+#如果使用了线，那么将在图例中得到线
+
+#ggplot2会尝试生成最小数量的、能够精确表达图中使用图形属性的图例
+#当一个变量对应了多个图形属性时，ggplot2可以通过合并图例的办法来达到精简的目的
+
+#name:控制着坐标轴名和图例标题，可为字符串或数学表达式
+
+#breaks,labels:控制着哪些刻度标签出现在坐标轴上，以及哪些标示出现在图例上
+
+#主题设置axis.*和legend.*控制着坐标轴和图例的整体外观
+
+#内部网格线由主要断点和次要断点的参数控制。
+#默认的，次要的网格线均匀地分布在原始的数据空间中：
+#这就为对数——对数图形赋予了通用的行为，即主要网格是可乘的，而次要网格是可加的。
+#使用minor_breaks覆盖掉次要网格线
+#网格线的外观是panel.grid.major和panel.grid.minor两个主题设置来控制的
+
+#图例的位置和对齐是使用主题设置legend.positio来控制的，其值可为
+#right,left,top,bottom,none,或是一个表示位置的数值
+#这个数值型位置由legend.justification给定的相对边角位置表示
+#是一个长度为2的数值型向量：右上角c(1,1),左下角c(0,0)
 
 
 

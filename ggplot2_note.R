@@ -1033,6 +1033,85 @@ ggplot(huron,aes(year))+
 #是一个长度为2的数值型向量：右上角c(1,1),左下角c(0,0)
 
 
+#ggplot2提供两种分面类型:网格型(gacet_grid)和封装型(facet_wrap)
+#网格分面生成的是一个2维面板网格，面板的行与列通过变量来定义
+#封装分面则先生成一个1维的面板条块，然后再封装到2维中
+#网格分面布局类似于基础图形中的coplot布局
+#封装分面则类似于lattice的面板布局
+
+#分面系统有两个基本参数：
+#一个是分面变量的设置，另一个是指定分面的位置标度是全局还是局部
+
+
+mpg2<-subset(mpg,cyl!=5 & drv %in% c("4","f"))
+head(mpg2)
+head(mpg2$drv)
+
+
+
+#网格分面在2维网格中展示图形
+#输入分面表达式时，需要设定哪些变量作为分面绘图的行，哪些变量作为列
+
+#不进行分面：即不使用函数facet_grid或加上命令facet_null()
+#此时，没有行或列被分面化，将得到一个单独的面板
+
+#===qplot(cty,hwy,data=mpg2)
+qplot(cty,hwy,data = mpg2)+facet_null()
+
+
+#一行多列:".~a":纵坐标相同，有助于y位置的比较
+qplot(cty,hwy,data = mpg2)+facet_grid(.~cyl)
+
+
+#一列多行:"b~.",横坐标相同，利于x位置的比较，尤其是对数据分布的比较
+qplot(cty,data = mpg2,geom = "histogram",binwidth=2)+
+    facet_grid(cyl~.)
+
+
+#多行多列:"a~b",通常将因子水平数目最大的变量按列排放，可以充分利用屏幕的宽高比
+qplot(cty,hwy,data = mpg2)+facet_grid(drv~cyl)
+
+
+#边际图
+#切割图形就好比创建一个列联表
+#列联表可展示每个单元的值以及边际和
+
+#设定margins=TRUE可展示所有的边际图，或者如margins=c("sex","age"),列出要展示的边际图的变量名称
+#可以使用grand_row或grand_col来分别生成所有行或列的边际图
+
+p<-qplot(displ,hwy,data = mpg2)+
+  geom_smooth(method = "lm",se=F)
+p+facet_grid(cyl~drv)
+#边际图：列联表
+p+facet_grid(cyl~drv,margins = T)
+
+
+#封装分面
+#facet_warp并不是用两个或者更多的变量来生成一个2维网格
+#而是生成一个长的面板条块（由任意数目的变量生成），然后将它封装在2维中
+#在处理单个多水平变量时，这种处理方式非常有用，可以有效地利用空间来安放图形
+#lattice中栅栏(Trellis)图形也采用这个方法
+
+
+library(plyr,ggplot2)
+movies$decade<-round_any(movies$year,10,floor)
+qplot(rating,..density..,data = subset(movies,decade>1890),
+    geom = "histogram",binwidth=0.5)+
+    facet_wrap(~decade,ncol=6)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

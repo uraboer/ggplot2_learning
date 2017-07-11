@@ -1093,13 +1093,155 @@ p+facet_grid(cyl~drv,margins = T)
 #lattice中栅栏(Trellis)图形也采用这个方法
 
 
-library(plyr,ggplot2)
+library(plyr)
 movies$decade<-round_any(movies$year,10,floor)
 qplot(rating,..density..,data = subset(movies,decade>1890),
     geom = "histogram",binwidth=0.5)+
     facet_wrap(~decade,ncol=6)
 
 
+# 标度控制
+# 对于两种分面，可以通过调整参数scales来控制面板的位置标度是相同（固定）还是允许变化（自由）
+# 
+# scales="fixed":x和y的标度在所有面板中都相同
+# scales="free":x和y的标度在每个面板这都可以变化
+# scales="free_x":x的标度可变，y的尺度固定
+# scales="free_y":y的标度可变，x的尺度固定
+
+p<-qplot(cty,hwy,data = mpg)
+p+facet_wrap(~cyl)
+p+facet_wrap(~cyl,scales="free")
+
+
+# 固定标度可以在相同的基准上对子集进行比较，观察在哪些地方各子集有相似的总体模式
+# 而自由标度可以发现更多细节，展示不同量纲的时间序列时非常有用
+
+library(reshape2)
+em<-melt(economics,id="date")
+qplot(date,value,data = em,geom="line",group=variable)+
+  facet_grid(variable~.,scale="free_y")
+
+
+#使用网格分面时facet_grid有一个额外的限制:同列的面板必须有相同的x标度，同行的面板必须有相同的y标度
+#facet_grid还有一个额外的参数space,值可为"free"或"fixed"
+#当space设定为free时，每列(行)的宽度(高度)与该列(行)的标度范围成比例
+#这将使得所有面板的标度比例相同:每个面板中的1cm都映射为相同的数据范围
+
+
+mpg3<-within(mpg2,{
+  model<-reorder(model,cty)
+  manufacturer<-reorder(manufacturer,-cty)
+})
+
+models<-qplot(cty,model,data = mpg3)
+
+models
+
+models+facet_grid(manufacturer~.,scales = "free",
+    space ="free" )+theme(strip.text.y = element_text())
+
+
+#每种小汽车的城市油耗英里数的点图
+#车类型按mpg均值排序
+
+#使用scales="free_y"和space="free"，按生产商进行分面
+#strip.text.y主题设置用来旋转分面标签
+
+#ggplot2给每个面板都添加地图，缺失的分面变量按包含该分面变量所有的值来处理
+
+#在分面图形中，每个组别都在单独的面板中，相隔较远，组间无重叠
+#因此组与组之间重叠严重时，分面图形有一定的好处，不过这也会导致组间的细微差别难以发现
+#使用图形属性区分各组时，各组将会离得很近甚至可能重叠，不过些微的差别容易被发现
+
+
+xmaj<-c(0.3,0.5,1.3,5)
+xmin<-as.vector(outer(1:10,10^c(-1,0)))
+ymaj<-c(500,5000,10000)
+ymin<-as.vector(outer(1:10,10^c(2,3,4)))
+dplot<-ggplot(subset(diamonds,color %in% c("D","E","G","J")),
+  aes(carat,price,color=color))+
+  scale_x_log10(breaks=xmaj,labels=xmaj,minor=xmin)+
+  scale_y_log10(breaks=ymaj,labels=ymaj,minor=ymin)+
+  scale_color_hue(limits=levels(diamonds$color))+
+  theme(legend.position = "none")
+graphics.off()
+dplot+geom_point()
+dplot+geom_point()+facet_grid(.~color)
+
+dplot+geom_smooth(method = lm,se=F,fullrange=T)
+
+dplot+geom_smooth(method = lm,se=F,fullrange=T)+
+  facet_grid(.~color)
+
+
+#并列与分面
+#分面可绘制出与图形并列类似的图形效果
+#并列和分面绘制的区别在于标注方式：
+#分面图形上方有颜色的标注，同时下面有切工的标注
+#而并列图形在下方有颜色标注，切工却没有清晰标注出来
+
+
+qplot(color,data = diamonds,geom = "bar",fill=cut,
+  position = "dodge")
+
+qplot(cut,data = diamonds,geom="bar",fill=cut)+
+  facet_grid(.~color)+
+  theme(axis.text.x = element_text(angle=90,hjust = 1,
+    size = 8,colour = "grey50"))
+
+#除标注方式外，当两个变量的因子水平几乎完全交叉，而部分变量组合缺失时，两种绘图方式也就会有所不同
+#并且，并列图的用处不大，因为它只是对条形图做局部地分割，没有任何标签
+#而分面就实用得多，它能控制分割方式是局部的(scales="free_x,space="free")还是局部的(scales="fixed")
+
+mpg4<-subset(mpg,manufacturer %in%
+  c("audi","volkswagen","jeep"))
+mpg4$manufacturer<-as.character(mpg4$manufacturer)
+mpg4$model<-as.character(mpg4$model)
+
+base<-ggplot(mpg4,aes(fill=model))+
+  geom_bar(position="dodge")+
+  theme(legend.position = "none")
+
+
+base+aes(x=model)+
+  facet_grid(.~manufacturer)
+last_plot()+facet_grid(.~manufacturer,
+  scales = "free_x",space="free")
+base+aes(x=manufacturer)
+
+
+#总之，图形是选择分面还是并列，要视两变量间的关系而定：
+#水平完全交叉：分面和并列基本等同
+
+#水平几乎交叉:有相同标度的分面保证了所有的水平组合可见，即使有些是空的。
+#当存在非结构性的缺失组合时，绘制分面图形非常有用
+
+#水平无交叉(嵌套):标度自由的分面会对每个有较高水平的组别分配充足的作图空间，
+#并对每个条目都进行标注
+
+#连续型变量
+#对连续型变量进行分面，首先需要将其变换为离散型，有三种转化方法：
+
+#1.将数据分为n个长度相同的部分：用cut_interval(x,n=10)控制划分数目
+#或用cut_interval(x,length=1)控制每个部分的长度。
+#控制划分数目会容易些，但划分区间的端点值可能不太"美观"
+
+#2.将数据划分为n个有相同数目点的部分：cut_number(x,n=10)
+#这使得分面间进行对比会更容易(分面有相同数目的点)，但需要注意每个部分的标度范围是不同的
+
+
+#面板长度为1
+mpg2$disp_ww<-cut_interval(mpg2$displ,length = 1)
+#每个面板等长
+mpg2$disp_wn<-cut_interval(mpg2$displ,n=6)
+#每个面板包含数目的点相同
+mpg2$disp_nn<-cut_number(mpg2$displ,n=6)
+
+
+plot<-qplot(cty,hwy,data = mpg2)+labs(x=NULL,y=NULL)
+plot+facet_wrap(~disp_ww,nrow = 1)
+plot+facet_wrap(~disp_wn,nrow = 1)
+plot+facet_wrap(~disp_nn,nrow = 1)
 
 
 

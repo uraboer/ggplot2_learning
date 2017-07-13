@@ -1257,9 +1257,161 @@ plot+facet_wrap(~disp_nn,nrow = 1)
 #
 
 
+#变换
+#与数据变换和标度变换不同，坐标轴变换将改变图形的几何形状：在极坐标系中，矩形变为圆环的一部分；
+#在地图中，两点间的最短路径将不再是直线
+
+#坐标系变换分为两步：
+#首先，几何形状的参数变化只依据定位，而不是定位和维度
+#但在一个非笛卡尔坐标系中，矩形则可能没有恒定的高度和宽度，那么如何去解析高度和宽度呢？
+#解决方案就是仅使用基于定位的方式来标示图形
+#获得矩形四个角的定位后，变换位置，然后将矩形转化成多边形
+
+#将几何形状变为基于定位的表现形式后，下一步就是将每个位置转化到新的坐标系中
+#对于点的转化，由于点的在任何坐标系中都是一个点，因此它的转化相对简单，但对于线和多边形就困难的多，这是因为直线在一个新的坐标系中并不一定是直线
+#为解决这个问题，先假定坐标系之间的变换是连续的，即所有的极短的直线变换后仍是很短的直线
+#这样，就可以将线和多边形切割为许多的线段后再进行变换，称为"分割再组合"(munching)
+
+
+#统计量
+#原来统计变换(stat)使用的统计方法都依赖坐标系的选择
+
+#笛卡尔坐标系
+#coord_cartesian,coord_equal,coord_flip,coord_trans，由于x和y的位置都是正交映射到图形的位置上，因此四种坐标系本质上仍是笛卡尔型的
+
+#设置范围
+#coord_cartesian有两个参数xlim和ylim
+#与标度中范围参数不同之处：
+#当设定标度范围时，任何超出范围的数据都会被删除；
+#但当设定笛卡尔坐标系的范围时，使用的仍是所有的数据，只不过只展示一小片图形区域
+
+
+#坐标系的范围设置vs标度的范围设置
+#完整数据集
+(p<-qplot(disp,wt,data = mtcars)+geom_smooth())
+
+#x的标度范围设置为(325,400)
+#标度的范围设置是对数据取子集，然后再重新拟合曲线
+p+scale_x_continuous(limits = c(325,500))
+
+#坐标系x轴范围设置为(325,400)
+#坐标系的放缩就是图像的放缩
+p+coord_cartesian(xlim = c(325,500))
+
+
+(d<-ggplot(diamonds,aes(carat,price))+
+    stat_bin2d(bins = 25,color="grey70")+
+    theme(legend.position = "none"))
+d+scale_x_continuous(limits = c(0,2))
+d+coord_cartesian(xlim = c(0,2))
+
+
+#坐标轴翻转
+#大多数统计量和几何形状都假定只对x条件下的y值感兴趣，
+#即大多数统计模型都假定x的值测量无误差
+
+qplot(displ,cty,data = mpg)+geom_smooth()
+qplot(cty,displ,data = mpg)+geom_smooth()
+qplot(cty,displ,data = mpg)+geom_smooth()+coord_flip()
 
 
 
+#变换
+#与范围设置一样，在标度层面和坐标系层面上都可以进行数据变换
+#coord_trans有x和y两个参数供坐标轴使用，都是字符串，被称作变换器
+#标度层面的变换发生在统计量计算之前，且不会改变对象的几何形状
+#但坐标系层面的变换却发生在统计量计算之后，会影响几何形状
+#若两种变换一起使用，可先在变换的尺度上建模，然后再反演到变换前的图形以便于解释
+
+
+qplot(carat,price,data = diamonds,log="xy")+
+  geom_smooth(method = "lm")
+
+library(scales)
+last_plot()+coord_trans(x=exp_trans(10),y=exp_trans(10))
+
+#相同标度
+#coord_equal保证了x轴和y轴有相同的标度:x轴上和y轴上的1cm代表相同的数据波动范围，
+#默认值设定的是1:1，可以通过修改参数ratio来更改两者的尺度比例
+
+#利用极坐标可生成饼图、玫瑰图（源自条状图）和雷达图（源自直线几何对象）
+#但由于角度在小的半径中比在大的半径中更难被感知，因此极坐标视觉感官性并不佳
+#极坐标常被用于环型数据，特别是时间和方向数据
+#参数theta决定了哪个变量被映射为角度（默认为x），哪个被映射为半径
+
+
+##堆叠条状图
+(pie<-ggplot(mtcars,aes(x=factor(1),fill=factor(cyl)))+
+    geom_bar(width=1))
+
+##饼图
+pie+coord_polar(theta = "y")
+
+##环形图
+pie+coord_polar()
+
+
+#主题
+#主题系统控制着图形中的非数据元素外观，不会影响几何对象和标度等数据元素
+#主题不能改变图形的感官性质，但可以使图形变得更具美感，满足整体一致性的要求
+
+#主题的控制包括标题、坐标轴标签、图例标签等文字调整，以及网格线、背景、轴须的颜色搭配
+
+#lattice和基础图形系统没有采用数据与非数据控制分离的方法，大部分函数都设定了许多参数来调整数据和非数据的外观，这很容易导致函数的复杂化
+#ggplot2则采用了不同的策略：绘图时，首先确定数据如何展示，然后再用主题系统对细节进行渲染
+
+
+#与ggplot2其它部分类似，主题也可以通过许多参数的控制使图形由粗糙变得美观：
+#使用内置主题，图形每个元素的效果保持着视觉的一致性。
+#默认主题为灰色背景、白色网格线，另一个为白色背景、灰色网格线
+
+#修改内置主题的某些元素。每个主题都是由许多元素组成，
+#都沿袭了内置主题中渲染元素的函数和参数
+#通过调整和组合这些参数，如文本的大小和颜色、背景、网格线颜色、文本方向
+
+
+#内置主题
+#默认的theme_gray()使用淡灰色背景和白色网格线
+#theme_bw()为白色背景和深灰色网格线
+
+#两个主题都由唯一的参数base_size来控制基础字体的大小
+#基础字体大小指的是轴标题的大小，图形标题比它大20%，轴须标签比它小20%
+
+#全局性设置:theme_set(theme_grey())或theme_set(theme_bw())
+#theme_set()返回先前的主题，可储存以备后用
+
+#局部性设置:只改变单个图形的主题,qplot(...)+theme_grey()
+#局部设置将会覆盖默认的全局性设置
+
+
+hgram<-qplot(hwy,data = mpg,binwidth=1)
+hgram
+
+previous_theme<-theme_set(theme_grey())
+hgram
+
+hgram+previous_theme
+graphics.off()
+
+#永久性存储初始主题
+theme_set(previous_theme)
+
+
+#内置元素函数有四个基础类型：文本(text)、线条(lines)、矩形(rectangles)、空白(blank)
+#element_text()绘制标签和标题，可控制字体的family\face\color\size\hjust\vjust\angle\lineheight
+
+
+hgramt<-hgram+labs(title="This is a histogram")
+hgramt
+hgramt+theme(plot.title = element_text(size = 20))
+
+hgramt+theme(plot.title = element_text(size = 20,colour = "red"))
+hgramt+theme(plot.title = element_text(size = 20,hjust = 0))
+hgramt+theme(plot.title = element_text(size = 20,face = "bold"))
+hgramt+theme(plot.title = element_text(size = 20,angle = 180))
+
+
+#element_line()
 
 
 

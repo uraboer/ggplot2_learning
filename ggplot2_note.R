@@ -1411,10 +1411,49 @@ hgramt+theme(plot.title = element_text(size = 20,face = "bold"))
 hgramt+theme(plot.title = element_text(size = 20,angle = 180))
 
 
-#element_line()
+#绘制线条或线段，该元素函数可控制colour,size,linetype
+hgram+theme(panel.grid.major = element_line(colour = "red"))
+hgram+theme(panel.grid.major = element_line(size = 2))
+hgram+theme(panel.grid.major = element_line(linetype = "dotted"))
+hgram+theme(axis.line = element_line())
+hgram+theme(axis.line = element_line(colour = "red"))
+hgram+theme(axis.line = element_line(size = 0.5,linetype = "dashed"))
+
+
+#element_rect()绘制主要供背景使用的矩形
+#可以控制填充颜色(fill)和边界colour,size,linetype
+
+hgram+theme(plot.background = element_rect(fill = "grey80",colour = NA))
+hgram+theme(plot.background = element_rect(size=2))
+hgram+theme(plot.background = element_rect(colour = "red"))
+hgram+theme(panel.background = element_rect())
+hgram+theme(panel.background = element_rect(colour = NA))
+hgram+theme(panel.background = element_rect(linetype = "dotted"))
+
+
+#element_blank()表示空主题，即对元素不分配相应的绘图空间
+#该函数可删去不感兴趣的绘图空间
+#使用colour=NA,fill=NA让某些元素不可见，可达到同样的效果，但仍占绘图空间
+
+hgramt
+last_plot()+theme(panel.grid.minor = element_blank())
+last_plot()+theme(panel.grid.major = element_blank())
+last_plot()+theme(panle.background = element_blank())
+last_plot()+theme(axis.title.x = element_blank(),
+                  axis.title.y = element_blank())
+last_plot()+theme(axis.line = element_line())
 
 
 
+p<-qplot(mpg,wt,data = mtcars,colour=factor(cyl))
+p
+
+scale_color_discrete<-scale_color_brewer
+p
+
+
+#存储输出
+#基本图形输出有两种类型：矢量型或光栅型
 
 
 

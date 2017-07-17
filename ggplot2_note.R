@@ -1478,6 +1478,91 @@ qplot(wt,mpg,data = mtcars)
 dev.off()
 
 
+#一页多图
+#grid工作原理：显示设备的一个矩形子区域
+
+#若想一页多图，最简单的方式是创建图形并将图形赋成变量，然后再绘制出来
+
+(a<-qplot(date,unemploy,data = economics,geom = "line"))
+library(ggplot2)
+(b<-qplot(uempmed,unemploy,data = economics)+
+    geom_smooth(se=F))
+(c<-qplot(uempmed,unemploy,data = economics,geom = "path"))
+
+
+#子图
+#把子图嵌入到主图的顶部是一种常见的图形布局
+#首先需要绘制主图，然后在更小的视图窗口绘制子图
+#viewport()可创建视图窗口，参数x,y,width,heigh控制视图窗口的大小和位置
+#默认的测量单位是"npc"，范围0-1
+#(0,0)代表的位置是左下角，(1,1)代表右上角，(0.5,0.5)代表视图窗口的中心
+
+library(grid)
+#一个占据整个图形设备的视图窗口
+vp1<-viewport(width = 1,height = 1,x=0.5,y=0.5)
+vp1<-viewport()
+
+#只占了图形设备一半的宽和高的视图窗口
+#定位在图形的中间位置
+
+vp2<-viewport(width = 0.5,height = 0.5,x=0.5,y=0.5)
+vp2<-viewport(width = 0.5,height = 0.5)
+
+#一个2cm x 3cm的视图窗口，定位在图形设备中心
+vp3<-viewport(width = unit(2,"cm"),height = unit(3,"cm"))
+
+#默认的，x和y参数控制着视图窗口的中心位置
+#若想调整图形位置，需要通过just参数来控制将图形放置在哪个边角
+
+#在右上角的视图窗口
+vp4<-viewport(x=1,y=1,just = c("top","right"))
+
+#处在左下角
+vp5<-viewport(x=0,y=0,just = c("bottom","right"))
+
+#为了能在新的视图窗口中画图，还需要使用print()中的vp参数
+pdf("polishing-subplot-1.pdf",width = 4,height = 4)
+subvp<-viewport(width = 0.4,height = 0.4,x=0.75,y=0.35)
+b
+print(c,vp=subvp)
+dev.off()
+
+
+csmall<-c+theme_gray(9)+labs(x=NULL,y=NULL)+
+  theme(plot.margin = unit(rep(0,4),"lines"))
+pdf("polishing-subplot-2.pdf",width = 4,height = 4)
+b
+
+print(csmall,vp=subvp)
+dev.off()
+
+
+#注意，需要使用pdf()或png()将图形存储到磁盘中
+#ggsave()只能存储一幅画
+
+#矩形网络
+#更复杂的情形是在矩形网格绘制大量图形
+#grid.layout()，设置了一个任意高和宽的视图窗口网格
+#只需设置布局(layout)的行数和列数即可
+
+
+pdf("polishing-layout.pdf",width = 8,height = 6)
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(2,2)))
+vplayout<-function(x,y)
+  viewport(layout.pos.row = x,layout.pos.col = y)
+
+print(a,vp=vplayout(1,1:2))
+print(b,bp=vplayout(2,1))
+print(c,vp=vplayout(2,2))
+
+dev.off()
+
+
+
+
+
+
 
 
 

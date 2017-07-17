@@ -1584,11 +1584,53 @@ dev.off()
 #或是在某个阈值之上或之下的观测值
 
 
+#选取各个颜色里最小的钻石
+ddply(diamonds,.(color),subset,carat==min(carat))
+#选取最小的两颗钻石
+ddply(diamonds,.(color),subset,order(carat)<=2)
+#选取每组里大小为前1%的钻石
+ddply(diamonds,.(color),subset,carat>quantile(carat,0.99))
+#选取所有比组平均值大的钻石
+ddply(diamonds,.(color),subset,price>mean(price))
 
 
+#.transform()是用来进行数据变换的函数
+#与ddply()一起可以计算分组统计量
+
+#把每个颜色组里钻石的价格标准化，使其均值为0，方差为1
+ddply(diamonds,.(color),transform,price=scale(price))
+
+#减去组均值
+ddply(diamonds,.(color),transform,price=price-mean(price))
 
 
+#colwise()用来向量化一个普通函数
+#能把原本只接受向量输入的函数变成可以接受输入框输入的函数
+#返回的是一个新的函数而不是函数运算结果
 
+
+nmissing<-function(x) sum(is.na(x))
+nmissing(msleep$name)
+nmissing(msleep$brainwt)
+
+nmissing_df<-colwise(nmissing)
+nmissing_df(msleep)
+
+#===
+colwise(nmissing)(msleep)
+
+
+#numcolwise()是colwise()的一个特殊版本，功能类似
+#但numcolwise()只对数值类型的列操作
+
+#numcolwise(median)对每个数值类型的列计算中位数
+#numcolwise(quantile)对每个数值类型的列计算分位数
+#catcolwise()只对分类类型的列操作
+
+#移除第6列
+msleep2<-msleep[,-6]
+
+numcolwise(median)(msleep2,na.rm=T)
 
 
 

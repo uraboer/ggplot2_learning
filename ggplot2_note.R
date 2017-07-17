@@ -1484,7 +1484,6 @@ dev.off()
 #若想一页多图，最简单的方式是创建图形并将图形赋成变量，然后再绘制出来
 
 (a<-qplot(date,unemploy,data = economics,geom = "line"))
-library(ggplot2)
 (b<-qplot(uempmed,unemploy,data = economics)+
     geom_smooth(se=F))
 (c<-qplot(uempmed,unemploy,data = economics,geom = "path"))
@@ -1545,7 +1544,7 @@ dev.off()
 #grid.layout()，设置了一个任意高和宽的视图窗口网格
 #只需设置布局(layout)的行数和列数即可
 
-
+library(grid)
 pdf("polishing-layout.pdf",width = 8,height = 6)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(2,2)))
@@ -1553,10 +1552,37 @@ vplayout<-function(x,y)
   viewport(layout.pos.row = x,layout.pos.col = y)
 
 print(a,vp=vplayout(1,1:2))
-print(b,bp=vplayout(2,1))
+print(b,vp=vplayout(2,1))
 print(c,vp=vplayout(2,2))
 
 dev.off()
+
+
+#数据操作
+#plyr包
+#使用分面(faceting)参数，ggplot2可以同时在数据的多个子集上作出相同的图
+#相应的，plyr包中的ddply()函数能够同时在数据的多个子集上作统计汇总
+#plyr包提供了一整套工具来处理列表(list)、数组(array)、数据框(data.frame)
+#把复杂的数据分割成几个部分，分别对各个部分进行处理，最后把这些结果综合到一起
+
+#根据行的取值，把数据框分解成几个子集，分别把各个子集输入某个函数，最后把结果综合在一个数据框中
+#ddply(.data,.variables,.fun,...)
+
+#.data是用来作图的数据
+
+#.variable是对数据取子集的分组变量，形式是.(var1,var2)
+#为了与图形保持一致，该变量必须包含所有在画图过程中用到的分组变量和分面变量
+#分面变量用来把数据分割成几个部分，每个部分分别画在一张小图里
+#分组变量则是同一张图内的数据分成几个部分处理
+
+#.fun是要在各子集上运行的统计汇总函数
+#这个函数可以返回向量也可以返回数据框
+#不要求.fun的返回结果包含分组变量，如果需要的话分组变量会被自动加入到最终结果里
+#函数返回结果可以是高度概括的数据集（也许只是一个数），也可以是用修改或扩展之后的数据
+
+#subset()用来对数据取子集的函数，选择数据中前(或后)n个(或x%的)观测值
+#或是在某个阈值之上或之下的观测值
+
 
 
 

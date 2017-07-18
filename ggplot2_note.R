@@ -1632,15 +1632,287 @@ msleep2<-msleep[,-6]
 
 numcolwise(median)(msleep2,na.rm=T)
 
+numcolwise(quantile)(msleep2,na.rm=T)
+
+numcolwise(quantile)(msleep2,probs=c(0.25,0.75),na.rm=T)
+
+
+ddply(msleep2,.(vore),numcolwise(median),na.rm=T)
+ddply(msleep2,.(vore),numcolwise(mean),na.rm=T)
+
+
+my_summary<-function(df){
+  with(df,data.frame(
+    pc_cor=cor(price,carat,method = "spearman"),
+    lpc_cor=cor(log(price),log(carat))
+  ))
+}
+
+ddply(diamonds,.(cut),my_summary)
+ddply(diamonds,.(color),my_summary)
+
+
+#以上所有问题都有个共同点，就是这些操作对单独的子集很简单，也许只需要一行代码
+#但针对多个子集操作并且组合各个结果就相对来说麻烦些
+#有了ddply()，就可以直接完成
+
+
+#拟合多个模型
+#stat_smooth生成平滑数据(smoothed data)
+#"平滑"是指用一个函数来拟合数据间的关系，例如回归就是一种平滑过程
+#"平滑数据"是指用平滑函数得到的预测值
+
+qplot(carat,price,data = diamonds,geom = "smooth",
+      colour=color)
+dense<-subset(diamonds,carat<2)
+qplot(carat,price,data=dense,geom="smooth",colour=color,
+      fullrange=TRUE)
+
+
+library(mgcv)
+smooth<-function(df){
+  mod<-gam(price~s(carat,bs="cs"),data=df)
+  grid<-data.frame(carat=seq(0.2,2,length=50))
+  pred<-predict(mod,grid,se=T)
+  grid$price<-pred$fit
+  grid$se<-pred$se.fit
+  grid
+}
+
+smoothes<-ddply(dense,.(color),smooth)
+qplot(carat,price,data = smoothes,colour=color,geom = "line")
+
+qplot(carat,price,data = smoothes,colour=color,
+      geom = "smooth",ymax=price+2*se,ymin=price-2*se)
+
+
+mod<-gam(price~s(carat,bs="cs")+color,data = dense)
+grid<-with(diamonds,expand.grid(
+  carat=seq(0.2,2,length=50),
+  color=levels(color)
+))
+grid$pred<-predict(mod,grid)
+qplot(carat,pred,data=grid,colour=color,geom = "line")
+
+
+#把数据化"宽"为"长"
+#ggplot2进行数据分组时必须根据行，而不能根据列
+
+#reshape2包中的melt()
+
+#data:待变形的原数据
+
+#id.vars:依旧放在列上、位置保持不变的变量
+#id.vars通常是离散的，并且是预先给定的
+#用方差分析的角度来理解，id.vars好比是变量Yijk的下标(i,j,k)
+#用数据库的角度来理解，id.vars好比是数据表的主键
+
+#measure.vars:需要被放进同一列的变量
+#不同的变量放在同一列后，根据原变量名来分组
+#这样这些变量就可以同时画在一张图里
+
+#ggolot2的理念就是把数据变形和可视化尽可能分开
+
+#如果有很多变量的话，比较好的方法是，把数据变成一个"长"的格式，然后再可视化
+
+ggplot(economics,aes(date))+
+  geom_line(aes(y=unemploy,colour="unemploy"))+
+  geom_line(aes(y=uempmed,colour="uempmed"))+
+  scale_colour_hue("variable")
+require(reshape2)
+emp<-melt(economics,id="date",measure=c("unemploy","uempmed"))
+qplot(date,value,data=emp,geom = "line",colour=variable)
+
+
+#这些图有一个共同的问题：两个变量取值差异太多
+#所以uempmed变量变成了图形底下一条平坦的线
+#ggplot2不允许画带两个不同坐标轴的图，具有误导性
+#直观的改进办法：把数据标度调整到相同的范围或使用自由标度的分面
+
+range01<-function(x){
+  rng<-range(x,na.rm = TRUE)
+  (x-rng[1])/diff(rng)
+}
+
+emp2<-ddply(emp,.(variable),transform,value=range01(value))
+
+#当序列数据大小差异很大时，可以使用：
+#把数据调整到相同的尺度上
+qplot(date,value,data = emp2,geom = "line",
+      colour=variable,linetype=variable)
+
+#把数据画在不同的分面图形上
+qplot(date,value,data = emp,geom = "line")+
+  facet_grid(variable~.,scales = "free_y")
+
+
+#平行坐标图
+#同样的方法能把原数据化为"长"数据，然后画出平行坐标图
+#平行坐标图就是以variable变量为x轴表示变量名
+#以value为y轴表示变量取值
+#此外还需要一个分组变量来把各个观测分组
+#可以直接使用数据框的rownames作为分组变量
+
+
+#ggolot()方法
+#ggplot()是一个泛型函数，能根据不同的数据调用不同的方法
+#最常见的数据类型是数据框
+#ggplot()函数跟base和lattice系统一样，也可以接收其他数据类型
+#但具体实现方法上有着本质的不同：
+#ggolot2并不是直接输入数据、输出图形，而只提供作图所需要的工具
+
+#gglot2需要借助fortify()来完成整个过程
+#fortify()能接收一个模型或对象，以及一个可选的原始数据作为第二参数
+#然后把它变成能输入到ggplot2的形式，比如数据框
+
+#fortify这个名字来自把模型和数据结合起来的想法：
+#用模型预测、扩展数据、用数据修补、诊断模型
+#得到的结果既可以反映模型，有可以反映数据
+
+#qplot()只是把ggplot()进行了简单的包装
+#所以qplot()也接受不同类型的输入
+
+
+#线性模型
+#plot.lm()很死板，想改动其中任何一个地方都必须去修改源代码
+#而ggplot2把数据整理和展示完全分离开了
+#fortify()方法负责数据变形，然后ggplot2负责画图
+
+
+qplot(displ,cty,data = mpg)+geom_smooth(method = "lm")
+mpgmod<-lm(cty~displ,data = mpg)
+
+
+mod<-lm(cty~displ,data = mpg)
+basic<-ggplot(mod,aes(.fitted,.resid))+
+  geom_hline(yintercept = 0,colour="grey50",size=0.5)+
+  geom_point()+
+  geom_smooth(size=0.5,se=F)
+
+#基本的拟合值-残差图
+basic
+#标准化的残差
+basic+aes(y=.stdresid)
+#点大小与Cook距离成比例
+basic+aes(size=.cooksd)+scale_size_area("Cook's distance")
+
+
+full<-basic %+% fortify(mod,mpg)
+full+aes(colour=factor(cyl))
+full+aes(displ,colour=factor(cyl))
+
+
+#减少重复性工作
+#好的数据分析都应该具有灵活性这一优点
+#如果数据发生变化，或者出现一些很不利于基本假设的信息时，
+#这时候我们应该能够快速、便捷地更改之前的图形
+#灵活性的主要敌人是重复
+#如果代码中很多都是重复、冗余的，
+#那么当发生变化时就需要一处一处地去修改
+
+
+#ggolot2会将最后一次绘制或者修改的图形储存下来
+#输入last_plot()即可获取该图形
+
+#可以从一个最基本的图形开始，迭代式地逐步添加图层和调整标度
+#直到得到最终有意思的结果
+#这种交互式的工作往往是很有用的
+
+
+qplot(x,y,data = diamonds,na.rm=TRUE)
+#当不断放大图形时，交互地使用last_plot()可以快速有效地找到最佳视角
+last_plot()+xlim(3,11)+ylim(3,11)
+last_plot()+xlim(4,10)+ylim(4,10)
+last_plot()+xlim(4,5)+ylim(4,5)
+last_plot()+xlim(4,4.5)+ylim(4,4.5)
+last_plot()+geom_abline(colour="red")
+
+
+#将图形调整至所期望的样子后，最好创建一个能生成最终图形的独立代码，
+#这样的好处在于可以不依赖于之前的步骤
+#此外，还应该添加必要的注释来说明如此绘图的原因
+
+qplot(x,y,data = diamonds,na.rm=T)+
+  geom_abline(colour="red")+
+  xlim(4,4.5)+ylim(4,4.5)
+
+
+#绘图模版
+#ggolot2图形的每一个组件都是一个对象：
+#可以被创建、存储并独立应用于某个图形中
+#可以创建可重复的组件来自动执行某些常用的任务，
+#从而不用多次重复输入冗长的函数
+
+
+gradient_rb<-scale_colour_gradient(low="red",high="blue")
+qplot(cty,hwy,data = mpg,colour=displ)+gradient_rb
+qplot(bodywt,brainwt,data=msleep,colour=awake,log="xy")+gradient_rb
+
+
+#将标度存储于某一变量中可供很多图形便捷地调用
+#对图层和分面也可进行类似的操作
+
+#同存储单个对象一样，也可以将ggplot2中的组件存储为list格式的列表
+#向某个图形中添加组件列表和将其中的组件按顺序逐个添加是一样的效果
+
+xquiet<-scale_x_continuous("",breaks = NULL)
+yquiet<-scale_y_continuous("",breaks = NULL)
+quiet<-list(xquiet,yquiet)
+
+
+qplot(mpg,wt,data = mtcars)+quiet
+qplot(displ,cty,data = mpg)+quiet
+
+geom_lm<-function(formula=y~x){
+  geom_smooth(formula=formula,se=FALSE,method = "lm")
+}
+
+qplot(mpg,wt,data = mtcars)+geom_lm()
+library(splines)
+qplot(mpg,wt,data = mtcars)+geom_lm(y~ns(x,3))
+
+
+#绘图函数
+#如果对某一种基本图形，反反复复地将其应用到不同的数据集或参数上
+#这时很有必要将其所有不同的选项封装成一个简单的函数
+
+#由于是在函数的环境中创建图形，因此以数据框的格式向ggplot()传递参数时需要格外小心
+#此外，还要确保没有在图形属性映射中误用了任何函数的局部变量
+
+#若允许用户向图形属性映射中提供自定义变量，建议使用aes_string()
+#该函数作用与aes()类似，但它使用字符串而不是未估值的表达式
+#aes_string("cty",colour="hwy")与aes(cty,colour=hwy)的功能是一样的
+#但字符串要比表达式更容易使用
+
+#应该把绘图代码切分为两个函数
+#一个做数据变换和处理，一个绘图
+
+
+pcp_data<-function(df){
+  numeric<-laply(df,is.numeric)
+  #每一列的数值调整到相同的范围
+  df[numeric]<-colwise(range01)(df[numeric])
+  #行名作为行识别信息
+  df$.row<-rownames(df)
+  #Melt将非数值变量作为id.vars
+  dfm<-melt(df,id=c(".row",names(df)[!numeric]))
+  #给数据框添加pcp类
+  class(dfm)<-c("pcp",class(dfm))
+  dfm
+}
+
+pcp<-function(df,...){
+  df<-pcp_data(df)
+  ggplot(df,aes(variable,value))+geom_line(aes(group=.row))
+}
+
+#绘制平行坐标图
+pcp(mpg)
+
+
+#绘制平行坐标图并以不同颜色来区分类别
+pcp(mpg)+aes(colour=drv)
 
 
 
-
-
-
-
-
-
-
-
-
+#############################END###############################
